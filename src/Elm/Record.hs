@@ -1,4 +1,4 @@
-module Elm.Record (toElmTypeSource) where
+module Elm.Record (toElmTypeSource, toElmTypeWithSources) where
 
 import           Elm.Type
 import           Text.Printf
@@ -23,3 +23,24 @@ render Unit = ""
 
 toElmTypeSource :: ToElmType a => a -> String
 toElmTypeSource = render . TopLevel . toElmType
+
+toElmTypeWithSources :: ToElmType a => a -> (String, [String])
+toElmTypeWithSources = go . toElmType
+  where
+    go t@(DataType d s) =
+      let (tDecoder, tDefs) = (d, [render (TopLevel t)])
+          (_, sDefs) = go s
+      in (tDecoder, tDefs ++ sDefs)
+    go t@(Product (Primitive "List") (Primitive "Char")) = (render (Field t), [])
+    go (Product x y) =
+      let (xType, xDefs) = go x
+          (yType, yDefs) = go y
+      in ( printf (case y of
+                     Primitive _ -> "%s %s"
+                     _           -> "%s (%s)") xType yType
+         , xDefs ++ yDefs )
+    go t@(Primitive _) = (render t, [])
+    go (Record _ t) = go t
+    go (Selector _ t) = go t
+    go (Field t) = go t
+    go t = error $ "toElmTypeWithSources: " ++ show t

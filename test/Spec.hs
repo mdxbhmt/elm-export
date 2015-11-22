@@ -29,7 +29,9 @@ main :: IO ()
 main =
   defaultMainWithOpts
     [testCase "toElmTypeSource" testToElmTypeSource
-    ,testCase "toElmDecoderSource" testToElmDecoderSource]
+    ,testCase "toElmTypeWithSources" testToElmTypeWithSources
+    ,testCase "toElmDecoderSource" testToElmDecoderSource
+    ,testCase "toElmDecoderWithSources" testToElmDecoderWithSources]
     mempty
 
 testToElmTypeSource :: Assertion
@@ -41,6 +43,15 @@ testToElmTypeSource =
      assertEqual "Encoding a Comment type" commentSource $
        (toElmTypeSource (Proxy :: Proxy Comment)) ++ "\n"
 
+testToElmTypeWithSources :: Assertion
+testToElmTypeWithSources =
+  do postSource <- readFile "test/PostType.txt"
+     commentSource <- readFile "test/CommentType.txt"
+     assertEqual "Encoding a [Post] type" ("List (Post)", [postSource, commentSource]) $
+       fmap (fmap (++ "\n")) (toElmTypeWithSources (Proxy :: Proxy [Post]))
+     assertEqual "Encoding a Primitive String type" ("String", []) $
+       fmap (fmap (++ "\n")) (toElmTypeWithSources (Proxy :: Proxy String))
+
 testToElmDecoderSource :: Assertion
 testToElmDecoderSource =
   do postSource <- readFile "test/PostDecoder.txt"
@@ -49,3 +60,12 @@ testToElmDecoderSource =
      commentSource <- readFile "test/CommentDecoder.txt"
      assertEqual "Encoding a Comment decoder" commentSource $
        (toElmDecoderSource (Proxy :: Proxy Comment)) ++ "\n"
+
+testToElmDecoderWithSources :: Assertion
+testToElmDecoderWithSources =
+  do postSource <- readFile "test/PostDecoder.txt"
+     commentSource <- readFile "test/CommentDecoder.txt"
+     assertEqual "Encoding a [Post] decoder" ("(list decodePost)", [postSource, commentSource]) $
+       fmap (fmap (++ "\n")) (toElmDecoderWithSources (Proxy :: Proxy [Post]))
+     assertEqual "Encoding a Primitive String decoder" ("string", []) $
+       fmap (fmap (++ "\n")) (toElmDecoderWithSources (Proxy :: Proxy String))
