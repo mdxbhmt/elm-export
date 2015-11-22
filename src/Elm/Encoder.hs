@@ -1,5 +1,8 @@
-module Elm.Encoder (toElmEncoderSource) where
+module Elm.Encoder (toElmEncoderSource, toElmEncoderWithSources) where
 
+import           Data.List   (nub)
+
+import           Elm.Common
 import           Elm.Type
 import           Text.Printf
 
@@ -32,3 +35,29 @@ render elmType =
 
 toElmEncoderSource :: ToElmType a => a -> String
 toElmEncoderSource = render . TopLevel . toElmType
+
+toElmEncoderWithSources :: ToElmType a => a -> (String, [String])
+toElmEncoderWithSources = fmap nub . go . toElmType
+  where
+    go t@(DataType _ s) =
+      let (tDecoder, tDefs) = (render t, [render (TopLevel t)])
+          (_, sDefs) = go s
+      in (tDecoder, tDefs ++ sDefs)
+    go (Product (Primitive "Maybe") t) =
+      let (tDecoder, tDefs) = go t
+      in  (printf "(\\y -> case y of Nothing -> JS.null; Just val -> %s val)" (parenthesize t tDecoder), tDefs)
+    go t@(Product (Primitive "List") (Primitive "Char")) = (render (Field t), [])
+    go (Product (Primitive "List") t) =
+      let (tDecoder, tDefs) = go t
+      in  (printf "(JS.list << List.map %s)" (parenthesize t tDecoder), tDefs)
+    go (Product x y) =
+      let (_, xDefs) = go x
+          (_, yDefs) = go y
+      in ( undefined -- this case is used only for generating definitions (called from DataType match above)
+         , xDefs ++ yDefs )
+    go Unit = ("JS.null", [])
+    go t@(Primitive _) = (render t, [])
+    go (Record _ t) = go t
+    go (Selector _ t) = go t
+    go (Field t) = go t
+    go t = error $ "toElmEncoder: " ++ show t

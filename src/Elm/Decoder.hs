@@ -3,7 +3,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeOperators     #-}
 
-module Elm.Decoder (toElmDecoderSource) where
+module Elm.Decoder (toElmDecoderSource, toElmDecoderWithSources) where
+
+import           Data.List   (nub)
 
 import           Elm.Type
 import           Text.Printf
@@ -30,3 +32,29 @@ render x = printf "<%s>" (show x)
 
 toElmDecoderSource :: ToElmType a => a -> String
 toElmDecoderSource = render . TopLevel . toElmType
+
+toElmDecoderWithSources :: ToElmType a => a -> (String, [String])
+toElmDecoderWithSources = fmap nub . go . toElmType
+  where
+    go t@(DataType _ s) =
+      let (tDecoder, tDefs) = (render t, [render (TopLevel t)])
+          (_, sDefs) = go s
+      in (tDecoder, tDefs ++ sDefs)
+    go (Product (Primitive "Maybe") t) =
+      let (tDecoder, tDefs) = go t
+      in  (printf "(Json.Decode.maybe %s)" tDecoder, tDefs)
+    go t@(Product (Primitive "List") (Primitive "Char")) = (render (Field t), [])
+    go (Product (Primitive "List") t) =
+      let (tDecoder, tDefs) = go t
+      in  (printf "(Json.Decode.list %s)" tDecoder, tDefs)
+    go (Product x y) =
+      let (xDecoder, xDefs) = go x
+          (yDecoder, yDefs) = go y
+      in ( printf "%s\n  |: %s" xDecoder yDecoder
+         , xDefs ++ yDefs )
+    go Unit = ("Json.Decode.succeed ()", [])
+    go t@(Primitive _) = (render t, [])
+    go (Record _ t) = go t
+    go (Selector _ t) = go t
+    go (Field t) = go t
+    go t = error $ "toElmDecoderWithSources: " ++ show t
