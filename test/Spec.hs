@@ -34,7 +34,8 @@ main =
     ,testCase "toElmTypeWithSources" testToElmTypeWithSources
     ,testCase "toElmDecoderSource" testToElmDecoderSource
     ,testCase "toElmDecoderWithSources" testToElmDecoderWithSources
-    ,testCase "toElmEncoderSource" testToElmEncoderSource]
+    ,testCase "toElmEncoderSource" testToElmEncoderSource
+    ,testCase "toElmEncoderWithSources" testToElmEncoderWithSources]
     mempty
 
 testToElmTypeSource :: Assertion
@@ -81,3 +82,12 @@ testToElmEncoderSource =
      commentSource <- readFile "test/CommentEncoder.txt"
      assertEqual "Encoding a Comment encoder" commentSource $
        toElmEncoderSource (Proxy :: Proxy Comment) ++ "\n"
+
+testToElmEncoderWithSources :: Assertion
+testToElmEncoderWithSources =
+  do postSource <- readFile "test/PostEncoder.txt"
+     commentSource <- readFile "test/CommentEncoder.txt"
+     assertEqual "Encoding a [Post] encoder" ("(JS.list << List.map encodePost)", [postSource, commentSource]) $
+       fmap (fmap (++ "\n")) (toElmEncoderWithSources (Proxy :: Proxy [Post]))
+     assertEqual "Encoding a Primitive String encoder" ("JS.string", []) $
+       fmap (fmap (++ "\n")) (toElmEncoderWithSources (Proxy :: Proxy String))
