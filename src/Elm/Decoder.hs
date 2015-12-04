@@ -5,6 +5,7 @@
 
 module Elm.Decoder (toElmDecoderSource, toElmDecoderWithSources) where
 
+import           Data.List   (nub)
 import           Elm.Type
 import           Text.Printf
 
@@ -32,7 +33,7 @@ toElmDecoderSource :: ToElmType a => a -> String
 toElmDecoderSource = render . TopLevel . toElmType
 
 toElmDecoderWithSources :: ToElmType a => a -> (String, [String])
-toElmDecoderWithSources = go . toElmType
+toElmDecoderWithSources = fmap nub . go . toElmType
   where
     go t@(DataType _ s) =
       let (tDecoder, tDefs) = (render t, [render (TopLevel t)])

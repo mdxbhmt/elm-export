@@ -1,5 +1,6 @@
 module Elm.Record (toElmTypeSource, toElmTypeWithSources) where
 
+import           Data.List   (nub)
 import           Elm.Type
 import           Text.Printf
 
@@ -25,7 +26,7 @@ toElmTypeSource :: ToElmType a => a -> String
 toElmTypeSource = render . TopLevel . toElmType
 
 toElmTypeWithSources :: ToElmType a => a -> (String, [String])
-toElmTypeWithSources = go . toElmType
+toElmTypeWithSources = fmap nub . go . toElmType
   where
     go t@(DataType d s) =
       let (tDecoder, tDefs) = (d, [render (TopLevel t)])
