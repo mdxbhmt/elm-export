@@ -16,6 +16,9 @@ render (TopLevel (DataType dataTypeName record@(Record _ _))) =
 render (TopLevel (DataType d s@(Sum _ _))) =
   printf "type %s\n  = %s" d <$> render s
 
+render (TopLevel (DataType d c@(Constructor _ _))) =
+  printf "type %s\n  = %s" d <$> render c
+
 render (DataType d _) = return d
 render (Primitive s) = return s
 
@@ -28,6 +31,8 @@ render (Field t) = render t
 
 render (Selector s t) = do fieldModifier <- asks fieldLabelModifier
                            printf "%s : %s" (fieldModifier s) <$> render t
+
+render (Constructor c Unit) = return $ printf "%s" c
 
 render (Constructor c t) = printf "%s %s" c <$> render t
 
