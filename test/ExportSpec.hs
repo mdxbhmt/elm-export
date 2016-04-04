@@ -20,7 +20,8 @@ data Post =
        ,age      :: Maybe Double
        ,comments :: [Comment]
        ,promoted :: Maybe Comment
-       ,author   :: Maybe String}
+       ,author   :: Maybe String
+       ,nothing  :: ()}
   deriving Generic
 
 data Comment =
