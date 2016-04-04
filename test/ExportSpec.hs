@@ -33,8 +33,12 @@ data Comment =
           ,tags           :: Map String Int}
   deriving ((Generic))
 
+data NoContent = NoContent
+  deriving Generic
+
 instance ElmType Post
 instance ElmType Comment
+instance ElmType NoContent
 
 spec :: Hspec.Spec
 spec =
@@ -53,6 +57,10 @@ toElmTypeSpec =
        shouldMatchTypeSource defaultOptions
                              (Proxy :: Proxy Comment)
                              "test/CommentType.elm"
+     it "toElmTypeSource NoContent" $
+       shouldMatchTypeSource defaultOptions
+                             (Proxy :: Proxy NoContent)
+                             "test/NoContentType.elm"
      it "toElmTypeSourceWithOptions Post" $
        shouldMatchTypeSource
          (defaultOptions {fieldLabelModifier = withPrefix "post"})
