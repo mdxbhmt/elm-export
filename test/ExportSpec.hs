@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass     #-}
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -36,6 +37,12 @@ data Comment =
 data NoContent = NoContent
   deriving Generic
 
+data Position
+  = Beginning
+  | Middle
+  | End
+  deriving (Generic, ElmType)
+
 instance ElmType Post
 instance ElmType Comment
 instance ElmType NoContent
@@ -61,6 +68,10 @@ toElmTypeSpec =
        shouldMatchTypeSource defaultOptions
                              (Proxy :: Proxy NoContent)
                              "test/NoContentType.elm"
+     it "toElmTypeSource Position" $
+       shouldMatchTypeSource defaultOptions
+                             (Proxy :: Proxy Position)
+                             "test/PositionType.elm"
      it "toElmTypeSourceWithOptions Post" $
        shouldMatchTypeSource
          (defaultOptions {fieldLabelModifier = withPrefix "post"})
@@ -83,6 +94,10 @@ toElmDecoderSpec =
        shouldMatchDecoderSource defaultOptions
                                 (Proxy :: Proxy Comment)
                                 "test/CommentDecoder.elm"
+     it "toElmDecoderSource Position" $
+       shouldMatchDecoderSource defaultOptions
+                                (Proxy :: Proxy Position)
+                                "test/PositionDecoder.elm"
      it "toElmDecoderSourceWithOptions Post" $
        shouldMatchDecoderSource
          (defaultOptions {fieldLabelModifier = withPrefix "post"})
@@ -105,6 +120,10 @@ toElmEncoderSpec =
        shouldMatchEncoderSource defaultOptions
                                 (Proxy :: Proxy Comment)
                                 "test/CommentEncoder.elm"
+     it "toElmEncoderSource Position" $
+       shouldMatchEncoderSource defaultOptions
+                                (Proxy :: Proxy Position)
+                                "test/PositionEncoder.elm"
      it "toElmEncoderSourceWithOptions Post" $
        shouldMatchEncoderSource
          (defaultOptions {fieldLabelModifier = withPrefix "post"})

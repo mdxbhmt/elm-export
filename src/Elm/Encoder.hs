@@ -2,15 +2,42 @@ module Elm.Encoder (toElmEncoderSource, toElmEncoderSourceWith)
        where
 
 import           Control.Monad.Reader
+import           Data.List            (intercalate)
 import           Elm.Common
 import           Elm.Type
 import           Text.Printf
 
+encoderHeader :: String -> String
+encoderHeader typeName =
+  printf "%s : %s -> Json.Encode.Value\n%s x =" fnName typeName fnName
+  where fnName = "encode" ++ typeName
+
 render :: ElmTypeExpr -> Reader Options String
 
+render (TopLevel (DataType d s@(Sum _ _))) = do
+  body <- renderSum s
+  return $ intercalate "\n"
+    [encoderHeader d
+    ,"  case x of"
+    ,body
+    ]
+  where
+    renderSum (Constructor c Unit) =
+      return $ intercalate "\n"
+        [printf "    %s ->" c
+        ,printf "      Json.Encode.string \"%s\"" c
+        ]
+    renderSum (Sum x y) = do
+      bodyX <- renderSum x
+      bodyY <- renderSum y
+      return $ intercalate "\n"
+        [bodyX
+        ,bodyY
+        ]
+    renderSum t = return $ printf "<%s>" (show t)
+
 render (TopLevel (DataType d t)) =
-  printf "%s : %s -> Json.Encode.Value\n%s x =%s" fnName d fnName <$> render t
-  where fnName = "encode" ++ d
+  (encoderHeader d ++) <$> render t
 
 render (DataType d _) = return $ "encode" ++ d
 
@@ -54,6 +81,8 @@ render  (Primitive "Date") = return "(Json.Encode.string << Exts.Date.toISOStrin
 render  (Primitive "Bool") = return "Json.Encode.bool"
 render  (Primitive "()") = return "(\\_ -> Json.Encode.list [])"
 render  (Field t) = render t
+
+render x = return $ printf "<%s>" (show x)
 
 toElmEncoderSourceWith :: ElmType a => Options -> a -> String
 toElmEncoderSourceWith options x = runReader (render . TopLevel $ toElmType x) options

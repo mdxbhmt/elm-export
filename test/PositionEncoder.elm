@@ -1,0 +1,12 @@
+module Main (..) where
+
+
+encodePosition : Position -> Json.Encode.Value
+encodePosition x =
+  case x of
+    Beginning ->
+      Json.Encode.string "Beginning"
+    Middle ->
+      Json.Encode.string "Middle"
+    End ->
+      Json.Encode.string "End"

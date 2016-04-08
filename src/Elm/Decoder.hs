@@ -12,11 +12,40 @@ import           Elm.Common
 import           Elm.Type
 import           Text.Printf
 
+decoderHeader :: String -> String
+decoderHeader typeName =
+  printf "%s : Json.Decode.Decoder %s\n%s =\n" fnName typeName fnName
+  where fnName = "decode" ++ typeName
+
 render :: ElmTypeExpr -> Reader Options String
 
+render (TopLevel (DataType d s@(Sum _ _))) =
+  (decoderHeader d ++) <$> do
+    body <- renderSum s True
+    return $ intercalate "\n"
+      ["  Json.Decode.string `Json.Decode.andThen` \\s ->"
+      ,body
+      ,"    else"
+      ,printf "      Json.Decode.fail (\"Could not decode %s from '\" ++ s ++ \"'\")" d
+      ]
+  where
+    renderSum :: ElmTypeExpr -> Bool -> Reader Options String
+    renderSum (Constructor c Unit) isFirst =
+      return $ intercalate "\n"
+        [printf "    %s s == \"%s\" then" (if isFirst then "if" else "else if") c
+        ,printf "      Json.Decode.succeed %s" c
+        ]
+    renderSum (Sum a b) isFirst =
+      do bodyA <- renderSum a isFirst
+         bodyB <- renderSum b False
+         return $ intercalate "\n"
+           [bodyA
+           ,bodyB
+           ]
+    renderSum t _ = return $ printf "<%s>" (show t)
+
 render (TopLevel (DataType d t)) =
-  printf "%s : Json.Decode.Decoder %s\n%s =\n%s" fnName d fnName <$> render t
-  where fnName = "decode" ++ d
+  (decoderHeader d ++ ) <$> render t
 
 render (DataType d _) = return $ "decode" ++ d
 
